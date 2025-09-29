@@ -301,6 +301,7 @@
                 <input type="file" id="csvFileInput" accept=".csv" style="margin-left: 10px; padding: 5px;">
                 <button onclick="loadLocalCSV()" style="margin-left: 10px; padding: 8px 15px; background: var(--gs-dark-blue); color: white; border: none; border-radius: 5px; cursor: pointer;">Load File</button>
             </div>
+            <form class="search-form" id="searchForm">ection">
             <form class="search-form" id="searchForm">
                 <input 
                     type="text" 
@@ -366,35 +367,6 @@
         let schoolsData = [];
         let userLocation = null;
         let markersGroup = null;
-
-        // Load CSV from local file upload
-        function loadLocalCSV() {
-            const fileInput = document.getElementById('csvFileInput');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showError('Please select a CSV file first!');
-                return;
-            }
-            
-            showStatus('📚 Loading CSV file...');
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const csvData = e.target.result;
-                processCSVData(csvData);
-            };
-            reader.onerror = function() {
-                showError('Error reading file. Please try again.');
-            };
-            reader.readAsText(file);
-        }
-
-        // Process CSV data (shared function for both local and remote loading)
-        function processCSVData(csvData) {
-            try {
-                console.log('📄 CSV data loaded, size:', csvData.length, 'characters');
-                console.log('First 200 characters:', csvData.substring(0, 200));
 
         // CSV file from your GitHub repository
         const SICILY_SCHOOLS_CSV_URL = 'https://raw.githubusercontent.com/NinaLi-93/sicily-schoolradar/main/sicily-schooldata.csv';
