@@ -13,8 +13,6 @@
     <style>
         .leaflet-default-icon-path {
             background-image: url('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png');
-
-            
         }
         
         .user-marker {
@@ -298,12 +296,15 @@
         </div>
 
         <div class="search-section">
-            <div style="background: var(--gs-yellow); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                <strong>📁 Load CSV File:</strong>
-                <input type="file" id="csvFileInput" accept=".csv" style="margin-left: 10px; padding: 5px;">
-                <button onclick="loadLocalCSV()" style="margin-left: 10px; padding: 8px 15px; background: var(--gs-dark-blue); color: white; border: none; border-radius: 5px; cursor: pointer;">Load File</button>
+            <div id="uploadFallback" style="display: none; background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+                <strong>⚠️ Automatic loading failed.</strong>
+                <p style="margin: 10px 0;">Please load the CSV file manually:</p>
+                <input type="file" id="csvFileInput" accept=".csv" style="margin: 10px 10px 0 0; padding: 8px;">
+                <button onclick="loadLocalCSV()" class="search-btn" style="margin-top: 10px;">Load CSV File</button>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                    Download: <a href="https://raw.githubusercontent.com/NinaLi-93/sicily-schoolradar/main/sicily-schooldata.csv" download style="color: var(--gs-dark-blue); font-weight: 600;">sicily-schooldata.csv</a>
+                </p>
             </div>
-            <form class="search-form" id="searchForm">ection">
             <form class="search-form" id="searchForm">
                 <input 
                     type="text" 
@@ -370,32 +371,84 @@
         let userLocation = null;
         let markersGroup = null;
 
-        // CSV file from your GitHub repository
-        const SICILY_SCHOOLS_CSV_URL = 'https://raw.githubusercontent.com/NinaLi-93/sicily-schoolradar/main/sicily-schooldata.csv';
+        // GitHub CSV URL
+        const GITHUB_CSV_URL = 'https://raw.githubusercontent.com/NinaLi-93/sicily-schoolradar/main/sicily-schooldata.csv';
 
-        // Load school data
-        async function loadSchoolData() {
-            if (SICILY_SCHOOLS_CSV_URL === 'ENTER_YOUR_CSV_URL_HERE') {
-                showError('⚠️ Please enter the URL to your school data CSV file in the code (line with SICILY_SCHOOLS_CSV_URL).');
-                return false;
-            }
-            
+        // Load CSV from GitHub automatically
+        async function loadFromGitHub() {
             try {
-                showStatus('📚 Loading school data...');
+                showStatus('📚 Loading school data from GitHub...');
+                console.log('Attempting to load from:', GITHUB_CSV_URL);
                 
-                const response = await fetch(SICILY_SCHOOLS_CSV_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                let csvData;
+                
+                // Try direct fetch first
+                try {
+                    const response = await fetch(GITHUB_CSV_URL);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    csvData = await response.text();
+                    console.log('✅ Direct GitHub fetch successful');
+                } catch (directError) {
+                    console.log('Direct fetch failed, trying CORS proxy...', directError);
+                    
+                    // Try with CORS proxy
+                    const corsProxy = 'https://corsproxy.io/?' + encodeURIComponent(GITHUB_CSV_URL);
+                    const response = await fetch(corsProxy);
+                    if (!response.ok) {
+                        throw new Error(`Proxy failed: HTTP ${response.status}`);
+                    }
+                    csvData = await response.text();
+                    console.log('✅ CORS proxy fetch successful');
                 }
                 
-                const csvData = await response.text();
+                // Process the CSV data
+                return processCSVData(csvData);
+                
+            } catch (error) {
+                console.error('Failed to load from GitHub:', error);
+                // Show upload fallback
+                document.getElementById('uploadFallback').style.display = 'block';
+                showError('Could not load data from GitHub. Please use the manual upload option above.');
+                return false;
+            }
+        }
+
+        // Load CSV from local file upload
+        function loadLocalCSV() {
+            const fileInput = document.getElementById('csvFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('Please select a CSV file first!');
+                return;
+            }
+            
+            showStatus('📚 Loading CSV file...');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvData = e.target.result;
+                processCSVData(csvData);
+            };
+            reader.onerror = function() {
+                showError('Error reading file. Please try again.');
+            };
+            reader.readAsText(file);
+        }
+
+        // Process CSV data
+        function processCSVData(csvData) {
+            try {
                 console.log('📄 CSV data loaded, size:', csvData.length, 'characters');
+                console.log('First 500 characters:', csvData.substring(0, 500));
                 
                 const parsedData = Papa.parse(csvData, {
                     header: true,
                     dynamicTyping: true,
                     skipEmptyLines: true,
-                    delimiter: ',',  // Explicitly set comma as delimiter
+                    delimiter: ',',
                     delimitersToGuess: [',', ';', '\t']
                 });
                 
@@ -403,7 +456,7 @@
                 console.log(`🔍 CSV columns:`, parsedData.meta.fields);
                 console.log(`🔍 First 3 rows:`, parsedData.data.slice(0, 3));
                 
-                // Detect field names - Updated for Sicily CSV with Italian column names
+                // Detect field names based on actual CSV structure
                 let latField = null;
                 let lonField = null;
                 let nameField = null;
@@ -415,18 +468,19 @@
                 
                 for (let field of fields) {
                     const lowerField = (field || '').toLowerCase().trim();
+                    
                     // Latitude
                     if (lowerField === 'latitude' || lowerField.includes('latitud')) latField = field;
                     // Longitude  
                     if (lowerField === 'longitude' || lowerField.includes('longitud')) lonField = field;
                     // Name - Denominazione
                     if (lowerField === 'denominazione' || lowerField.includes('denominazion')) nameField = field;
-                    // Address - both Indirizzo and Full Address
-                    if (lowerField === 'full address' || lowerField === 'indirizzo' || lowerField.includes('address')) addressField = field;
-                    // Student count - All Students or Alunni
-                    if (lowerField === 'all students.alunni' || lowerField === 'alunni' || lowerField.includes('students')) totalField = field;
-                    // School type - Tipo Istituto
-                    if (lowerField === 'allstudents.school type' || lowerField.includes('tipo') || lowerField.includes('istituto')) typeField = field;
+                    // Address - Full Address
+                    if (lowerField === 'full address' || lowerField.includes('full address') || lowerField === 'indirizzo' || lowerField.includes('address')) addressField = field;
+                    // Student count - "All Students"
+                    if (lowerField === 'all students' || lowerField.includes('all students')) totalField = field;
+                    // School type - "School_Type"
+                    if (lowerField === 'school_type' || lowerField === 'school type' || lowerField.includes('school_type')) typeField = field;
                 }
                 
                 console.log('🗺️ Detected fields:', {
@@ -444,31 +498,33 @@
                     const lon = school[lonField];
                     return lat && lon && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lon));
                 }).map(school => {
-                    // Determine school type
+                    // Determine school type from School_Type column
                     let schoolType = 'other';
                     let displayType = 'Other Schools';
                     const typeValue = (school[typeField] || '').toLowerCase().trim();
                     
-                    if (typeValue.includes('primaria') || typeValue.includes('grundschule') || typeValue.includes('elementare') || typeValue.includes('primary') || typeValue.includes('elementary')) {
-                        schoolType = 'prim';
-                        displayType = 'Primaria';
+                    console.log(`Processing school: ${school[nameField]}, School_Type: "${school[typeField]}"`);
+                    
+                    if (typeValue.includes('primaria') || typeValue.includes('primary') || typeValue.includes('elementary')) {
+                        schoolType = 'primaria';
+                        displayType = 'Primary School';
                     } else if (typeValue.includes('secondaria') || typeValue.includes('secondary')) {
-                        if (typeValue.includes(' ii ') || typeValue.includes('ii grado') || typeValue.includes('secondo') || typeValue.includes(' 2 ') || typeValue.includes('2°') || 
-                            typeValue.includes('liceo') || typeValue.includes('oberschule') || typeValue.includes('superiore') || typeValue.includes('high school')) {
-                            schoolType = 'sec i';
-                            displayType = 'SEC I';
-                        } else if (typeValue.includes(' i ') || typeValue.includes('i grado') || typeValue.includes('primo') || typeValue.includes(' 1 ') || typeValue.includes('1°') || 
-                                   typeValue.includes('mittelschule') || typeValue.includes('media') || typeValue.includes('middle')) {
-                            schoolType = 'sec II';
-                            displayType = 'SEC II';
+                        if (typeValue.includes(' ii ') || typeValue.includes('ii grado') || typeValue.includes('secondo') || typeValue.includes(' 2 ') || 
+                            typeValue.includes('liceo') || typeValue.includes('superiore') || typeValue.includes('high')) {
+                            schoolType = 'secondaria_ii';
+                            displayType = 'High School';
+                        } else if (typeValue.includes(' i ') || typeValue.includes('i grado') || typeValue.includes('primo') || typeValue.includes(' 1 ') || 
+                                   typeValue.includes('media') || typeValue.includes('middle')) {
+                            schoolType = 'secondaria_i';
+                            displayType = 'Middle School';
                         }
                     }
                     
-                    // Student count
+                    // Student count from "All Students" column
                     let studentCount = 0;
                     if (school[totalField] && !isNaN(parseInt(school[totalField]))) {
                         const value = parseInt(school[totalField]);
-                        if (value > 0 && value < 5000) {
+                        if (value > 0 && value < 10000) {
                             studentCount = value;
                         }
                     }
@@ -507,11 +563,19 @@
                     updateVisibleSchools();
                 }, 500);
                 
+                document.getElementById('statusMessage').innerHTML = '';
+                showStatus(`✅ ${schoolsData.length} schools loaded! All schools visible.`);
+                setTimeout(() => {
+                    document.getElementById('statusMessage').innerHTML = '';
+                }, 3000);
+                
+                watchAddressInput();
+                
                 return true;
                 
             } catch (error) {
-                console.error('Error loading school data:', error);
-                showError('Error loading school data. Please check the CSV URL and your internet connection.');
+                console.error('Error processing school data:', error);
+                showError('Error processing school data: ' + error.message);
                 return false;
             }
         }
@@ -532,10 +596,9 @@
             return R * c;
         }
 
-        // Address to coordinates - angepasst für Sizilien
+        // Address to coordinates
         async function geocodeAddress(address) {
             const encodedAddress = encodeURIComponent(address + ', Sicilia, Italia');
-            // Sizilien Bounding Box: ca. 12.4°E bis 15.7°E, 36.6°N bis 38.8°N
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1&bounded=1&viewbox=12.4,38.8,15.7,36.6`;
             
             try {
@@ -556,13 +619,12 @@
             }
         }
 
-        // Initialize map - zentriert auf Palermo, Sizilien
+        // Initialize map centered on Palermo
         function initMap() {
             if (map) {
                 map.remove();
             }
             
-            // Zentriert auf Palermo (Hauptstadt Siziliens)
             map = L.map('map').setView([38.1157, 13.3615], 10);
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -610,19 +672,19 @@
         }
 
         function formatSchoolType(school) {
-            return school.SCHOOL_TYPE_DISPLAY || school.TYPE_ORIGINAL || 'Andere Schulen';
+            return school.SCHOOL_TYPE_DISPLAY || school.TYPE_ORIGINAL || 'Other Schools';
         }
 
         function showAllSchoolsOnMap() {
             if (!schoolsData || schoolsData.length === 0) {
-                console.log('❌ No school data available');
+                console.log('No school data available');
                 return;
             }
             
-            console.log(`🗺️ Displaying ${schoolsData.length} schools on map`);
+            console.log(`Displaying ${schoolsData.length} schools on map`);
             markersGroup.clearLayers();
             
-            schoolsData.forEach((school, index) => {
+            schoolsData.forEach((school) => {
                 const color = getSchoolColor(school);
                 
                 const baseRadius = 4;
@@ -652,7 +714,7 @@
                 marker.addTo(markersGroup);
             });
             
-            console.log(`✅ ${schoolsData.length} schools successfully added to map`);
+            console.log(`${schoolsData.length} schools successfully added to map`);
             
             document.getElementById('mainContent').style.display = 'grid';
             
@@ -689,26 +751,27 @@
                 other: visibleSchools.filter(s => s.SCHOOL_TYPE === 'other').length
             };
             
-            let statsText = '';
+            // Build stats text like Milan version
+            let statsText = `🏫 ${visibleSchools.length} schools in current view`;
+            
             if (userLocation) {
                 const radius = parseInt(document.getElementById('radiusSelect').value);
-                statsText = `📊 ${visibleSchools.length} schools within ${radius}m radius`;
-            } else {
-                statsText = `📊 ${visibleSchools.length} schools in current view`;
+                statsText = `🏫 ${visibleSchools.length} schools within ${radius}m radius`;
             }
             
             if (schoolsWithStudents.length > 0) {
                 statsText += ` | 👥 ${totalStudents.toLocaleString()} total students`;
             }
             
-            const typeBreakdown = [];
-            if (typeCount.primaria > 0) typeBreakdown.push(`🔵 ${typeCount.primaria} Primary`);
-            if (typeCount.secondaria_i > 0) typeBreakdown.push(`🟣 ${typeCount.secondaria_i} Middle`);
-            if (typeCount.secondaria_ii > 0) typeBreakdown.push(`🟢 ${typeCount.secondaria_ii} High`);
-            if (typeCount.other > 0) typeBreakdown.push(`🔴 ${typeCount.other} Other`);
+            // Add type breakdown with colored indicators
+            const typeBreakdownParts = [];
+            if (typeCount.primaria > 0) typeBreakdownParts.push(`🔵 ${typeCount.primaria} Primary`);
+            if (typeCount.secondaria_i > 0) typeBreakdownParts.push(`🟣 ${typeCount.secondaria_i} Sec. I Grado`);
+            if (typeCount.secondaria_ii > 0) typeBreakdownParts.push(`🟢 ${typeCount.secondaria_ii} Sec. II Grado`);
+            if (typeCount.other > 0) typeBreakdownParts.push(`🔴 ${typeCount.other} Other`);
             
-            if (typeBreakdown.length > 0) {
-                statsText += ` | ${typeBreakdown.join(', ')}`;
+            if (typeBreakdownParts.length > 0) {
+                statsText += ` | ${typeBreakdownParts.join(', ')}`;
             }
             
             statsContainer.innerHTML = `<div class="stats">${statsText}</div>`;
@@ -838,7 +901,6 @@
                 map.fitBounds(circleBounds, {
                     padding: [20, 20]
                 });
-                
             } else {
                 const radiusInDegrees = radius / 111000;
                 const circleBounds = L.latLngBounds([
@@ -875,7 +937,7 @@
             }
             
             if (!schoolsData || schoolsData.length === 0) {
-                showError('❌ No school data available! Please reload the page.');
+                showError('No school data available! Please load the CSV file first.');
                 return;
             }
             
@@ -971,26 +1033,16 @@
         });
 
         window.addEventListener('load', async () => {
+            // Initialize map
             initMap();
             
-            const dataLoaded = await loadSchoolData();
-            if (dataLoaded) {
-                document.getElementById('mainContent').style.display = 'grid';
-                showAllSchoolsOnMap();
-                
-                setTimeout(() => {
-                    updateVisibleSchools();
-                }, 500);
-                
-                document.getElementById('statusMessage').innerHTML = '';
-                showStatus(`✅ ${schoolsData.length} schools loaded! All schools visible. Zoom in or search by address.`);
-                setTimeout(() => {
-                    document.getElementById('statusMessage').innerHTML = '';
-                }, 3000);
-                
-                watchAddressInput();
+            // Try to load data from GitHub automatically
+            const loaded = await loadFromGitHub();
+            
+            if (loaded) {
+                console.log('Data loaded successfully from GitHub');
             } else {
-                showError('❌ Failed to load school data. Please reload the page.');
+                console.log('GitHub loading failed, manual upload required');
             }
         });
     </script>
