@@ -13,6 +13,8 @@
     <style>
         .leaflet-default-icon-path {
             background-image: url('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png');
+
+            
         }
         
         .user-marker {
@@ -422,9 +424,9 @@
                     // Address - both Indirizzo and Full Address
                     if (lowerField === 'full address' || lowerField === 'indirizzo' || lowerField.includes('address')) addressField = field;
                     // Student count - All Students or Alunni
-                    if (lowerField === 'all students' || lowerField === 'alunni' || lowerField.includes('students')) totalField = field;
+                    if (lowerField === 'all students.alunni' || lowerField === 'alunni' || lowerField.includes('students')) totalField = field;
                     // School type - Tipo Istituto
-                    if (lowerField === 'tipo istituto' || lowerField.includes('tipo') || lowerField.includes('istituto')) typeField = field;
+                    if (lowerField === 'allstudents.school type' || lowerField.includes('tipo') || lowerField.includes('istituto')) typeField = field;
                 }
                 
                 console.log('🗺️ Detected fields:', {
@@ -448,17 +450,17 @@
                     const typeValue = (school[typeField] || '').toLowerCase().trim();
                     
                     if (typeValue.includes('primaria') || typeValue.includes('grundschule') || typeValue.includes('elementare') || typeValue.includes('primary') || typeValue.includes('elementary')) {
-                        schoolType = 'primaria';
-                        displayType = 'Primary School';
+                        schoolType = 'prim';
+                        displayType = 'Primaria';
                     } else if (typeValue.includes('secondaria') || typeValue.includes('secondary')) {
                         if (typeValue.includes(' ii ') || typeValue.includes('ii grado') || typeValue.includes('secondo') || typeValue.includes(' 2 ') || typeValue.includes('2°') || 
                             typeValue.includes('liceo') || typeValue.includes('oberschule') || typeValue.includes('superiore') || typeValue.includes('high school')) {
-                            schoolType = 'secondaria_ii';
-                            displayType = 'High School';
+                            schoolType = 'sec i';
+                            displayType = 'SEC I';
                         } else if (typeValue.includes(' i ') || typeValue.includes('i grado') || typeValue.includes('primo') || typeValue.includes(' 1 ') || typeValue.includes('1°') || 
                                    typeValue.includes('mittelschule') || typeValue.includes('media') || typeValue.includes('middle')) {
-                            schoolType = 'secondaria_i';
-                            displayType = 'Middle School';
+                            schoolType = 'sec II';
+                            displayType = 'SEC II';
                         }
                     }
                     
