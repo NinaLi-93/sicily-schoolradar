@@ -477,10 +477,10 @@
                     if (lowerField === 'denominazione' || lowerField.includes('denominazion')) nameField = field;
                     // Address - Full Address
                     if (lowerField === 'full address' || lowerField.includes('full address') || lowerField === 'indirizzo' || lowerField.includes('address')) addressField = field;
-                    // Student count - "All Students"
-                    if (lowerField === 'all students' || lowerField.includes('all students')) totalField = field;
-                    // School type - "School_Type"
-                    if (lowerField === 'school_type' || lowerField === 'school type' || lowerField.includes('school_type')) typeField = field;
+                    // Student count - "All Students" - KORRIGIERT
+                    if (lowerField === 'all students' || lowerField.includes('all students') || lowerField.includes('students')) totalField = field;
+                    // School type - "School Type" - KORRIGIERT: mit Leerzeichen, nicht Unterstrich
+                    if (lowerField === 'school type' || lowerField === 'school_type' || lowerField.includes('school') && lowerField.includes('type')) typeField = field;
                 }
                 
                 console.log('🗺️ Detected fields:', {
@@ -498,23 +498,23 @@
                     const lon = school[lonField];
                     return lat && lon && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lon));
                 }).map(school => {
-                    // Determine school type from School_Type column
+                    // Determine school type from School Type column
                     let schoolType = 'other';
                     let displayType = 'Other Schools';
                     const typeValue = (school[typeField] || '').toLowerCase().trim();
                     
-                    console.log(`Processing school: ${school[nameField]}, School_Type: "${school[typeField]}"`);
+                    console.log(`Processing school: ${school[nameField]}, School Type: "${school[typeField]}"`);
                     
-                    if (typeValue.includes('primaria') || typeValue.includes('primary') || typeValue.includes('elementary')) {
+                    // Check for your actual CSV values: "prim", "sec i", "sec ii"
+                    if (typeValue === 'prim' || typeValue.includes('prim')) {
                         schoolType = 'primaria';
                         displayType = 'Primary School';
-                    } else if (typeValue.includes('secondaria') || typeValue.includes('secondary')) {
-                        if (typeValue.includes(' ii ') || typeValue.includes('ii grado') || typeValue.includes('secondo') || typeValue.includes(' 2 ') || 
-                            typeValue.includes('liceo') || typeValue.includes('superiore') || typeValue.includes('high')) {
+                    } else if (typeValue.includes('sec')) {
+                        // Check if it's "sec ii" or just "sec i"
+                        if (typeValue.includes('ii') || typeValue.includes(' 2') || typeValue === 'sec ii') {
                             schoolType = 'secondaria_ii';
                             displayType = 'High School';
-                        } else if (typeValue.includes(' i ') || typeValue.includes('i grado') || typeValue.includes('primo') || typeValue.includes(' 1 ') || 
-                                   typeValue.includes('media') || typeValue.includes('middle')) {
+                        } else if (typeValue.includes(' i') || typeValue.includes(' 1') || typeValue === 'sec i') {
                             schoolType = 'secondaria_i';
                             displayType = 'Middle School';
                         }
