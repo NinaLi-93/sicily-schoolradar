@@ -319,6 +319,19 @@
         </div>
 
         <div id="statusMessage"></div>
+        
+        <div id="uploadFallback" style="display: none;">
+            <div class="search-section" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                <p style="margin-bottom: 10px;"><strong>⚠️ Automatic loading failed.</strong> Please load the CSV file manually:</p>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="file" id="csvFileInput" accept=".csv" style="padding: 8px;">
+                    <button onclick="loadLocalCSV()" class="search-btn">Load File</button>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                    Download the CSV from: <a href="https://github.com/NinaLi-93/sicily-schoolradar/blob/main/sicily-schooldata.csv" target="_blank">GitHub Repository</a>
+                </p>
+            </div>
+        </div>
 
         <div class="main-content" id="mainContent" style="display: none;">
             <div class="results-panel">
@@ -1036,7 +1049,7 @@
             initMap();
             
             // Try to load from GitHub automatically
-            showStatus('📚 Attempting to load school data from GitHub... If this fails, please use the "Load CSV File" button above.');
+            showStatus('📚 Attempting to load school data from GitHub...');
             
             try {
                 const dataLoaded = await loadSchoolData();
@@ -1046,7 +1059,8 @@
                 }
             } catch (error) {
                 console.error('Auto-load failed:', error);
-                showError('❌ Could not load from GitHub. Please download the CSV file and use the "Load File" button above.');
+                document.getElementById('statusMessage').innerHTML = '';
+                document.getElementById('uploadFallback').style.display = 'block';
             }
         });
     </script>
