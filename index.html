@@ -461,6 +461,7 @@
                 let lonField = null;
                 let nameField = null;
                 let addressField = null;
+                let cityField = null;
                 let totalField = null;
                 let typeField = null;
                 
@@ -475,11 +476,13 @@
                     if (lowerField === 'longitude' || lowerField.includes('longitud')) lonField = field;
                     // Name - Denominazione
                     if (lowerField === 'denominazione' || lowerField.includes('denominazion')) nameField = field;
-                    // Address - Full Address
-                    if (lowerField === 'full address' || lowerField.includes('full address') || lowerField === 'indirizzo' || lowerField.includes('address')) addressField = field;
-                    // Student count - "All Students" - KORRIGIERT
+                    // Address - Indirizzo (only street address)
+                    if (lowerField === 'indirizzo' || lowerField.includes('indirizzo')) addressField = field;
+                    // City - Comune
+                    if (lowerField === 'comune' || lowerField.includes('comune')) cityField = field;
+                    // Student count - "All Students"
                     if (lowerField === 'all students' || lowerField.includes('all students') || lowerField.includes('students')) totalField = field;
-                    // School type - "School Type" - KORRIGIERT: mit Leerzeichen, nicht Unterstrich
+                    // School type - "School Type"
                     if (lowerField === 'school type' || lowerField === 'school_type' || lowerField.includes('school') && lowerField.includes('type')) typeField = field;
                 }
                 
@@ -488,6 +491,7 @@
                     lon: lonField,
                     name: nameField,
                     address: addressField,
+                    city: cityField,
                     total: totalField,
                     type: typeField
                 });
@@ -532,6 +536,7 @@
                     return {
                         DENOMINAZIONE: school[nameField] || 'Unknown School',
                         INDIRIZZO: school[addressField] || 'Address not available',
+                        COMUNE: school[cityField] || 'Unknown',
                         LAT_Y_4326: parseFloat(school[latField]),
                         LONG_X_4326: parseFloat(school[lonField]),
                         NUM_ISCR: studentCount,
@@ -708,6 +713,7 @@
                         <p><strong>🏫 Type:</strong> ${formatSchoolType(school)}</p>
                         <p><strong>👥 Students:</strong> ${school.NUM_ISCR > 0 ? school.NUM_ISCR : 'N/A'}</p>
                         <p><strong>📍 Address:</strong> ${school.INDIRIZZO}</p>
+                        <p><strong>🏙️ City:</strong> ${school.COMUNE}</p>
                     </div>
                 `);
                 
@@ -786,7 +792,7 @@
                     
                 resultsHTML += `
                     <div style="background: var(--gs-light-blue); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                        <strong>📍 Search Results</strong><br>
+                        <strong>🔍 Search Results</strong><br>
                         ${contextText}
                     </div>
                 `;
@@ -817,6 +823,10 @@
                             <span>${school.INDIRIZZO}</span>
                         </div>
                         <div class="info-item">
+                            <span class="info-label">🏙️ City:</span>
+                            <span>${school.COMUNE}</span>
+                        </div>
+                        <div class="info-item">
                             <span class="info-label">👥 Students:</span>
                             <span class="student-count">${school.NUM_ISCR > 0 ? school.NUM_ISCR : 'N/A'}</span>
                         </div>
@@ -842,7 +852,7 @@
                 weight: 2,
                 opacity: 0.8,
                 fillOpacity: 0.1
-            }).bindPopup(`<strong>🔍 Search Area</strong><br>Radius: ${radius}m`);
+            }).bindPopup(`<strong>📍 Search Area</strong><br>Radius: ${radius}m`);
             
             radiusCircle.addTo(markersGroup);
             
@@ -877,9 +887,10 @@
                             ${school.DENOMINAZIONE}
                         </h3>
                         <p><strong>🏫 Type:</strong> ${formatSchoolType(school)}</p>
-                        <p><strong>📍 Distance:</strong> ${school.distance}m</p>
+                        <p><strong>📏 Distance:</strong> ${school.distance}m</p>
                         <p><strong>👥 Students:</strong> ${school.NUM_ISCR > 0 ? school.NUM_ISCR : 'N/A'}</p>
                         <p><strong>📍 Address:</strong> ${school.INDIRIZZO}</p>
+                        <p><strong>🏙️ City:</strong> ${school.COMUNE}</p>
                     </div>
                 `).addTo(markersGroup);
             });
