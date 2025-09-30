@@ -179,8 +179,8 @@
 
         .school-info {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            grid-template-columns: auto 1fr;
+            gap: 10px 20px;
             margin-top: 12px;
         }
 
@@ -189,10 +189,12 @@
             align-items: flex-start;
             gap: 8px;
             font-size: 0.9rem;
+            white-space: nowrap;
         }
         
         .info-item span:not(.info-label):not(.student-count) {
-            word-break: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .info-label {
