@@ -179,16 +179,20 @@
 
         .school-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-top: 12px;
         }
 
         .info-item {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 8px;
             font-size: 0.9rem;
+        }
+        
+        .info-item span:not(.info-label):not(.student-count) {
+            word-break: break-word;
         }
 
         .info-label {
@@ -823,12 +827,12 @@
                             <span>${school.INDIRIZZO}</span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">🏙️ City:</span>
-                            <span>${school.COMUNE}</span>
-                        </div>
-                        <div class="info-item">
                             <span class="info-label">👥 Students:</span>
                             <span class="student-count">${school.NUM_ISCR > 0 ? school.NUM_ISCR : 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🏙️ City:</span>
+                            <span>${school.COMUNE}</span>
                         </div>
                     </div>
                 </div>
